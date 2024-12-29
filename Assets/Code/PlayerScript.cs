@@ -32,7 +32,6 @@ public class PlayerScript : MonoBehaviour
     public Sprite run;
     public Sprite attackingSprite;
     public Sprite slide;
-    public Transform axe;
     public static bool canDash;
     public Transform aimer;
     public ParticleSystem hit;
@@ -42,6 +41,10 @@ public class PlayerScript : MonoBehaviour
     private LineRenderer grappleString;
     private float grappling;
     public Transform grapplePoint;
+    private BoxCollider2D hitBox;
+    public Transform groundedAttackPoint;
+    public GameObject groundedAttack;
+    private float groundAttackTimer;
 
     // Start is called before the first frame update
     void Start()
@@ -49,6 +52,8 @@ public class PlayerScript : MonoBehaviour
         grappleString = gameObject.GetComponent<LineRenderer>();
         sprite = playerSprite.GetComponent<SpriteRenderer>();
         StartCoroutine(runCycle());
+
+        hitBox = gameObject.GetComponent<BoxCollider2D>();
     }
 
     IEnumerator runCycle(){
@@ -112,9 +117,23 @@ public class PlayerScript : MonoBehaviour
         playerPosition = transform.position;
         //get horizontal input and find direction of movement
         inputX = Input.GetAxisRaw("Horizontal");
-        direction = rb.velocity.x / Mathf.Abs(rb.velocity.x);
+        if(Mathf.Abs(rb.velocity.x) > 0.01f){
+            direction = rb.velocity.x / Mathf.Abs(rb.velocity.x);
+        }
 
-        //movement code (wall running, jumping, moving)
+        checkGrapple();
+
+        //sprite code (rotations, sprite changes)
+        setSprite();
+
+        //attacking code(enemy targetting, attack movement)
+        attack();
+        
+        //glide();
+        grappling -= Time.deltaTime;
+    }
+
+    void checkGrapple(){
         if(Input.GetKey(KeyCode.LeftShift)){
             //grappling
             Vector3 aim = findClosest("Grapple Point");
@@ -133,31 +152,23 @@ public class PlayerScript : MonoBehaviour
         }
         
         if(grappling < 0){
+            //not grappling
             if(attacking < 0){
                 attackEffect.SetActive(false);
                 move();
+
                 if(attacking < -0.1f){
                     gameObject.tag = "Player";
                 }
                 grappleString.enabled = false;
             }
             else{
-                axe.eulerAngles = new Vector3(0, 0, -179);
-                axe.transform.position = transform.position + new Vector3(0, -1);
+                //is grappling
                 attackEffect.SetActive(true);
                 gameObject.tag = "Attack";
                 grappleString.enabled = false;
             }
         }
-
-        //sprite code (rotations, sprite changes)
-        setSprite();
-
-        //attacking code(enemy targetting, attack movement)
-        attack();
-        
-        //glide();
-        grappling -= Time.deltaTime;
     }
 
     void grapple(Vector3 aim){
@@ -173,9 +184,7 @@ public class PlayerScript : MonoBehaviour
         //grappleString.widthMultiplier = 0.5f + Vector3.Distance(transform.position, aim) / 10;
     }
 
-    void attack(){
-        Vector3 aim = findClosest("Enemy");
-
+    void setAimer(Vector3 aim){
         if(aim != Vector3.zero && Vector3.Distance(transform.position, aim) < 15){
             aimer.position = aim;
             aimer.up = new Vector3(transform.position.x - aim.x, transform.position.y - aim.y, 0);
@@ -183,28 +192,61 @@ public class PlayerScript : MonoBehaviour
         else{
             aimer.position = new Vector3(0, -1000, 0);
         }
+    }
 
+    void attack(){
+        Vector3 aim = findClosest("Enemy");
+
+        //set target aimer line thing
+        setAimer(aim);
+
+        groundAttackTimer -= Time.deltaTime;
         attacking -= Time.deltaTime;
         if(Input.GetKeyDown(KeyCode.Space) && attacking < 0 && canDash == true){
-            //zero vector is the default return when there is no targetable enemies (dont attack)
-            if(aim != Vector3.zero && Vector3.Distance(transform.position, aim) < 15){
-                canDash = false;
-                attacking = 0.15f;
-                //aim towards target
-                transform.up = new Vector3(aim.x - transform.position.x, aim.y - transform.position.y);
-                //axe.eulerAngles = new Vector3(0, 0, 180);
+
+            if(onGround == true){
+                if(groundAttackTimer < 0){
+                    //grounded attack
+                    groundedAttackPoint.localPosition = new Vector2(3 * direction, 0);
+                    GameObject attack = Instantiate(groundedAttack, groundedAttackPoint.position, Quaternion.identity);
+                    attack.transform.eulerAngles = new Vector3(0, 0, 90 * -direction);
+
+                    axeHolder.swing = 0.2f;
+                    //axeScript.chopCounter = 0.2f;
+                    CameraScript.shake(0.1f);
+                    rb.velocity = new Vector2(direction * 20, 0);
+                    rb.drag = 6;
+                    groundAttackTimer = 0.3f;
+                }
+            }
+            else{
+                //dash attack
+
+                //zero vector is the default return when there is no targetable enemies (dont attack)
+                if(aim != Vector3.zero && Vector3.Distance(transform.position, aim) < 15){
+                    canDash = false;
+                    attacking = 0.15f;
+                    //aim towards target
+                    transform.up = new Vector3(aim.x - transform.position.x, aim.y - transform.position.y);
+                }
             }
         }
 
+        //dash towards target
         if(attacking > 0){
             rb.velocity = transform.up * attackSpeed * (1 - attacking * 0.25f);
             playerSprite.up = transform.up;
+            hitBox.size = new Vector2(1, 3);
         }
         else if(attacking > -0.1f){
-            rb.drag = 6;
+            //slow down
+            hitBox.size = new Vector2(1.7f, 1f);
+            rb.velocity = transform.up * attackSpeed / 1.2f;
         }
         else{
+            //reset transform
             transform.up = Vector3.zero;
+            hitBox.size = new Vector2(1.7f, 1f);
         }
     }
 
@@ -362,14 +404,6 @@ public class PlayerScript : MonoBehaviour
         setter.rotation = Quaternion.SlerpUnclamped(setter.rotation, to, Time.deltaTime * speed);
     }
 
-    void glide(){
-        if(Input.GetKey(KeyCode.UpArrow)){
-            if(rb.velocity.y < 0){
-                rb.velocity *= new Vector3(1, 1- Time.deltaTime * glideAmount);
-            }
-        }
-    }
-
     private void OnTriggerEnter2D(Collider2D other) {
         if(other.tag == "Enemy Attack"){
             getHit(other.transform.position);
@@ -377,6 +411,7 @@ public class PlayerScript : MonoBehaviour
     }
 
     void getHit(Vector3 other){
+        //player getting hit
         Time.timeScale = 0.1f;
         playerSprite.up = new Vector3(transform.position.x - other.x, transform.position.y - other.y);
         hit.Play();

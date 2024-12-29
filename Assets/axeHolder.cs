@@ -2,35 +2,51 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class axeScript : MonoBehaviour
+public class axeHolder : MonoBehaviour
 {
-    public Transform player;
-    private SpriteRenderer mySprite;
+    public Transform axe;
+    public static float swing;
+    private Vector3 axeAim;
+    public SpriteRenderer mySprite;
+    private float direction;
 
     // Start is called before the first frame update
     void Start()
     {
-        mySprite = gameObject.GetComponent<SpriteRenderer>();
+
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
         float inputX = Input.GetAxisRaw("Horizontal");
-        Vector3 aimPosition = new Vector3(player.position.x - inputX * 0.2f, player.position.y + 0.5f, 0);
-        transform.position = Vector3.Lerp(transform.position, aimPosition, Time.deltaTime * 20);
-        lerpRotate(transform, inputX * 30, 10);
+
+        if(swing > 0){
+            axeAim = new Vector3(0, 2);
+            lerpRotate(transform, -120, 30);
+        }
+        else{
+            lerpRotate(transform, 30, 10);
+            axeAim = new Vector3(0, 0.5f);
+        }
+
+        axe.localPosition = Vector3.Lerp(axe.localPosition, axeAim, Time.deltaTime * 20);
+        swing -= Time.deltaTime;
+
+        //flipping sprite
         if(inputX == 1){
             mySprite.flipX = false;
+            direction = 1;
         }
         else if(inputX == -1){
             mySprite.flipX = true;
+            direction = - 1;
         }
     }
 
     void lerpRotate(Transform setter, float angle, float speed){
         Vector3 originalAngle = setter.eulerAngles;
-        setter.eulerAngles = new Vector3(0,0, angle);
+        setter.eulerAngles = new Vector3(0,0, angle * direction);
         Quaternion to = setter.rotation;
 
         setter.eulerAngles = originalAngle;
