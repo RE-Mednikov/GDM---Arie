@@ -410,7 +410,7 @@ public class PlayerScript : MonoBehaviour
         }
     }
 
-    void getHit(Vector3 other){
+    public void getHit(Vector3 other){
         //player getting hit
         Time.timeScale = 0.1f;
         playerSprite.up = new Vector3(transform.position.x - other.x, transform.position.y - other.y);
