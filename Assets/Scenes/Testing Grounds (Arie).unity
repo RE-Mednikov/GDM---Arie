@@ -270,15 +270,18 @@ MonoBehaviour:
   speed: 5
   player: {fileID: 1893588206}
   playerTransform: {fileID: 1893588207}
-  isIdle: 0
-  isPatrolling: 1
+  isIdle: 1
+  isPatrolling: 0
   isChasing: 0
+  hasVision: 0
+  visionDistance: 15
+  facingDirection: right
   patrolPoints:
   - {fileID: 1529996618}
   - {fileID: 1148681866}
   patrolPointDistance: 0.2
   chaseSpeed: 15
-  chaseDistance: 20
+  chaseDistance: 0
 --- !u!1001 &300227048
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -423,7 +426,7 @@ GameObject:
   - component: {fileID: 669580196}
   m_Layer: 0
   m_Name: Capsule
-  m_TagString: Untagged
+  m_TagString: Respawn
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
