@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using Unity.VisualScripting.Dependencies.Sqlite;
 using UnityEngine;
@@ -34,6 +35,12 @@ public class GeneralEnemy : MonoBehaviour
     public bool isIdle;
     public bool isPatrolling;
     public bool isChasing;
+    
+    
+    //Vision
+    public bool hasVision;
+    public float visionDistance;
+    public string facingDirection; //left, right, up, down
     
     //Patrol
     public Transform[] patrolPoints; //made for two points
@@ -70,6 +77,16 @@ public class GeneralEnemy : MonoBehaviour
             Chase();
         }
     }
+
+    void FixedUpdate()
+    {
+        Vision();
+    }
+
+
+
+    // **Attacking** //
+
     
     // Currently on enter, will need to be on stay once their is a hit cooldown implemented in player script
     protected void OnCollisionEnter2D(Collision2D collision)
@@ -85,15 +102,31 @@ public class GeneralEnemy : MonoBehaviour
         
     }
     
-    protected void Patrol()
+    
+
+
+   
+    // **States** //
+
+   
+    protected void Idle()
+    {
+        if (hasVision)
+        {
+            isChasing = true;
+            isIdle = false;
+        }
+    }
+    
+    protected void Patrol() // need to adjust patrols so that it flips the enemy to the face the correct direction (needs to account for vertical patrols)
     {
         if (patrolDestination == 0)
         {
             // move enemy to point 0
-            transform.position = Vector2.MoveTowards(transform.position, patrolPoints[0].position, speed * Time.deltaTime);
+            transform.position = UnityEngine.Vector2.MoveTowards(transform.position, patrolPoints[0].position, speed * Time.deltaTime);
             
             // check when enemy is close to point 0 and change destination to point 1
-            if (Vector2.Distance(transform.position, patrolPoints[0].position) < patrolPointDistance)
+            if (UnityEngine.Vector2.Distance(transform.position, patrolPoints[0].position) < patrolPointDistance)
             {
                 patrolDestination = 1;
             }
@@ -101,10 +134,10 @@ public class GeneralEnemy : MonoBehaviour
         else if (patrolDestination == 1)
         {
             // move enemy to point 1
-            transform.position = Vector2.MoveTowards(transform.position, patrolPoints[1].position, speed * Time.deltaTime);
+            transform.position = UnityEngine.Vector2.MoveTowards(transform.position, patrolPoints[1].position, speed * Time.deltaTime);
 
             // check when enemy is close to point 1 and change destination to point 0
-            if (Vector2.Distance(transform.position, patrolPoints[1].position) < patrolPointDistance)
+            if (UnityEngine.Vector2.Distance(transform.position, patrolPoints[1].position) < patrolPointDistance)
             {
                 patrolDestination = 0;
             }
@@ -112,7 +145,7 @@ public class GeneralEnemy : MonoBehaviour
         
         // Check if player is in chases distance, if so change to chasing state
         // Future: Change this to a raycast/vision check
-        if (Vector2.Distance(transform.position, playerTransform.position) < chaseDistance)
+        if (hasVision)
         {
             isChasing = true;
             isPatrolling = false;
@@ -131,39 +164,121 @@ public class GeneralEnemy : MonoBehaviour
         // If the player is to the left of enemy
         if (transform.position.x > playerTransform.position.x)
         {
-            transform.localScale = new Vector3(1, 1, 1); //flips enemy to face left
-            transform.position += Vector3.left * chaseSpeed * Time.deltaTime; //moves enemy left
+            transform.localScale = new UnityEngine.Vector3(1, 1, 1); //flips enemy to face left
+            transform.position += UnityEngine.Vector3.left * chaseSpeed * Time.deltaTime; //moves enemy left
         } 
         // If the player is to the right of enemy
         else if (transform.position.x < playerTransform.position.x)
         {   
-            transform.localScale = new Vector3(-1, 1, 1); //flips enemy to face right
-            transform.position += Vector3.right * chaseSpeed * Time.deltaTime;
+            transform.localScale = new UnityEngine.Vector3(-1, 1, 1); //flips enemy to face right
+            transform.position += UnityEngine.Vector3.right * chaseSpeed * Time.deltaTime;
         }
 
         // next part will change, view note above
         // Check if the player is out of chase distance, if so change to patrolling state 
-        if (Vector2.Distance(transform.position, playerTransform.position) > chaseDistance)
+        if (!hasVision)
         {
             isChasing = false;
-            isPatrolling = true;
+            isIdle = true; //idles by default, can switch to patrolling if needed
         }
 
     }
 
-    protected void Idle()
+   
+   
+   // **Vision** //
+   
+   
+    protected void Vision()
     {
-
+        
+        //send raycast to player
+        RaycastHit2D hit = Physics2D.Raycast(transform.position + (UnityEngine.Vector3) forwardDirection(), playerTransform.position - transform.position, visionDistance); //!!!!we add forwardDirection to the origin to account for the enemy's collider. Notice if the player is behind the enemy it will hit the enemy collider, is this what we want so that it doesn't target the player behind it, or is it better to use the explicit check that I have set u?
+        if (hit.collider != null)
+        {
+            //check if the raycast hit a player
+            if (hit.collider.gameObject.tag == "Player")
+            {
+                //check if the player is facing the enemy
+                if (IsFacingPlayer())
+                {
+                    Debug.DrawRay(transform.position, playerTransform.position - transform.position, Color.green);
+                    hasVision = true;
+                }
+                else
+                {
+                    Debug.DrawRay(transform.position, playerTransform.position - transform.position, Color.blue);
+                    hasVision = false;
+                }
+            }
+            else
+            {
+                Debug.DrawRay(transform.position, playerTransform.position - transform.position, Color.red);
+                Debug.Log(hit.collider.gameObject.tag);
+                hasVision = false;
+            }
+        }
     }
+
+    private bool IsFacingPlayer() //check if enemy is facing the player
+    {
+        //enemy direction
+        UnityEngine.Vector2 enemyDirection = forwardDirection();
+
+
+        //direction to player
+        UnityEngine.Vector2 directionToPlayer = (playerTransform.position - transform.position).normalized;
+
+        //check if enemy is facing the player (true = facing, false = not facing)
+        return UnityEngine.Vector2.Dot(enemyDirection, directionToPlayer) > 0;
+    }
+
+    private UnityEngine.Vector2 forwardDirection()
+    {
+        if (facingDirection == "right")
+        {
+            return transform.right;
+        }
+        else if (facingDirection == "left")
+        {
+            return -transform.right;
+        }
+        else if (facingDirection == "up")
+        {
+            return transform.up;
+        }
+        else if (facingDirection == "down")
+        {
+            return -transform.up;
+        }
+
+        return transform.right; //default to right because no null option for Vector2
+    }
+   
+   
+   
+   
+   
+   
+   
+   
+   // **Damage** //
+   
 
     public void TakeDamage()
     {
         
     }
 
+    protected void getHit()
+    {
+    // Leo to implement getting hit
+    }
+
+    
     protected void Die()
     {
-
+    // Leo to implement dying
     }
 
     
