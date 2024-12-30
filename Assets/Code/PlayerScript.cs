@@ -117,8 +117,12 @@ public class PlayerScript : MonoBehaviour
         playerPosition = transform.position;
         //get horizontal input and find direction of movement
         inputX = Input.GetAxisRaw("Horizontal");
-        if(Mathf.Abs(rb.velocity.x) > 0.01f){
+        /*if(Mathf.Abs(rb.velocity.x) > 0.01f){
             direction = rb.velocity.x / Mathf.Abs(rb.velocity.x);
+        }*/
+
+        if(inputX != 0){
+            direction = inputX;
         }
 
         checkGrapple();
@@ -214,7 +218,7 @@ public class PlayerScript : MonoBehaviour
                     axeHolder.swing = 0.2f;
                     //axeScript.chopCounter = 0.2f;
                     CameraScript.shake(0.1f);
-                    rb.velocity = new Vector2(direction * 20, 0);
+                    //rb.velocity = new Vector2(direction * 20, 0);
                     rb.drag = 6;
                     groundAttackTimer = 0.3f;
                 }
@@ -406,6 +410,12 @@ public class PlayerScript : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other) {
         if(other.tag == "Enemy Attack"){
+            getHit(other.transform.position);
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D other) {
+        if(other.gameObject.tag == "Enemy Attack"){
             getHit(other.transform.position);
         }
     }

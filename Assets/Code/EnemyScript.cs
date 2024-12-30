@@ -3,12 +3,14 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using UnityEditor.Callbacks;
 using UnityEngine;
+using UnityEngine.U2D.IK;
 using UnityEngine.UIElements;
 public class EnemyScript : MonoBehaviour
 {
     public bool bodyPart;
     public GameObject killEffect;
     public int health;
+    private int originalhealth;
     private CircleCollider2D hitBox;
     private GameObject player;
     public enemyAi myHolder;
@@ -23,10 +25,15 @@ public class EnemyScript : MonoBehaviour
     public float moveSpeed;
     private float moveCounter;
     private Rigidbody2D rb;
+    private Vector3 respawnPosition;
 
     // Start is called before the first frame update
     void Start()
     {
+        //set respawn values
+        respawnPosition = transform.position;
+        originalhealth = health;
+
         mySprite = gameObject.GetComponent<SpriteRenderer>();
         player = GameObject.FindGameObjectWithTag("Player");
         hitBox = gameObject.GetComponent<CircleCollider2D>();
@@ -64,7 +71,7 @@ public class EnemyScript : MonoBehaviour
 
         if(shootsProjectile == true && projectileCounter > 1.5f/* && Vector3.Distance(transform.position, PlayerScript.playerPosition) < 25*/){
             GameObject shot = Instantiate(projectile, transform.position, Quaternion.identity);
-            shot.GetComponent<projectileScript>().shooterTransform = transform;
+            shot.GetComponent<projectileScript>().shooterAngle = transform.eulerAngles.z;
             projectileCounter = 0;
         }
 
@@ -124,14 +131,20 @@ public class EnemyScript : MonoBehaviour
 
     IEnumerator hit(){
         //turn off hitbox for a bit to let the player phase through
-        hitBox.enabled = false;
+        gameObject.layer = 6;
         CameraScript.shake(0.5f);
+
+        if(bodyPart == false){
+            rb.velocity *= 0;
+        }
+
         Instantiate(killEffect, transform.position, Quaternion.identity);
         yield return new WaitForSeconds(0.3f);
-        hitBox.enabled = true;
+        gameObject.layer = 5;
     }
 
     void die(bool fromGround){
+        health = originalhealth;
         hitBox.enabled = false;
         Vector3 originalDirection = transform.eulerAngles;
         
@@ -163,6 +176,7 @@ public class EnemyScript : MonoBehaviour
             hitBox.enabled = true;
             GameObject spawner = Instantiate(respawn, transform.position, Quaternion.identity);
             transform.eulerAngles = originalDirection;
+            spawner.GetComponent<EnemyRespawn>().spawnPoint = respawnPosition;
             spawner.GetComponent<EnemyRespawn>().myRespawn = respawnObject;
         }
     }
