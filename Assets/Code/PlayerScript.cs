@@ -117,8 +117,12 @@ public class PlayerScript : MonoBehaviour
         playerPosition = transform.position;
         //get horizontal input and find direction of movement
         inputX = Input.GetAxisRaw("Horizontal");
-        if(Mathf.Abs(rb.velocity.x) > 0.01f){
+        /*if(Mathf.Abs(rb.velocity.x) > 0.01f){
             direction = rb.velocity.x / Mathf.Abs(rb.velocity.x);
+        }*/
+
+        if(inputX != 0){
+            direction = inputX;
         }
 
         checkGrapple();
@@ -142,6 +146,7 @@ public class PlayerScript : MonoBehaviour
                 playerSprite.transform.up = new Vector3(transform.position.x - aim.x, transform.position.y - aim.y) * -1;
                 grapple(aim);
                 if(grappleString.enabled == false){
+                    canDash = true;
                     rb.velocity *= 1.4f;
                     grappleString.enabled = true;
                 }
@@ -214,9 +219,9 @@ public class PlayerScript : MonoBehaviour
                     axeHolder.swing = 0.2f;
                     //axeScript.chopCounter = 0.2f;
                     CameraScript.shake(0.1f);
-                    rb.velocity = new Vector2(direction * 20, 0);
+                    //rb.velocity = new Vector2(direction * 20, 0);
                     rb.drag = 6;
-                    groundAttackTimer = 0.3f;
+                    groundAttackTimer = 0.35f;
                 }
             }
             else{
@@ -410,13 +415,23 @@ public class PlayerScript : MonoBehaviour
         }
     }
 
+
+    private void OnCollisionEnter2D(Collision2D other) {
+        if(other.gameObject.tag == "Enemy Attack"){
+            getHit(other.transform.position);
+        }
+    }
+    
     public void getHit(Vector3 other){
+
         //player getting hit
         Time.timeScale = 0.1f;
         playerSprite.up = new Vector3(transform.position.x - other.x, transform.position.y - other.y);
         hit.Play();
         CameraScript.shake(2);
         hitAnimation.Play();
+
+        groundAttackTimer = 0.5f;
         //rb.velocity = playerSprite.up * 40;
         //attacking = -0.2f;
     }
