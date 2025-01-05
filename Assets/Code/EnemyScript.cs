@@ -71,7 +71,7 @@ public class EnemyScript : MonoBehaviour
 
         if(shootsProjectile == true && projectileCounter > 1.5f/* && Vector3.Distance(transform.position, PlayerScript.playerPosition) < 25*/){
             GameObject shot = Instantiate(projectile, transform.position, Quaternion.identity);
-            shot.GetComponent<projectileScript>().shooterAngle = transform.eulerAngles.z;
+            shot.transform.up = transform.up;
             projectileCounter = 0;
         }
 

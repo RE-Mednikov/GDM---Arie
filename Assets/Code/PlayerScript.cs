@@ -146,6 +146,7 @@ public class PlayerScript : MonoBehaviour
                 playerSprite.transform.up = new Vector3(transform.position.x - aim.x, transform.position.y - aim.y) * -1;
                 grapple(aim);
                 if(grappleString.enabled == false){
+                    canDash = true;
                     rb.velocity *= 1.4f;
                     grappleString.enabled = true;
                 }
@@ -220,7 +221,7 @@ public class PlayerScript : MonoBehaviour
                     CameraScript.shake(0.1f);
                     //rb.velocity = new Vector2(direction * 20, 0);
                     rb.drag = 6;
-                    groundAttackTimer = 0.3f;
+                    groundAttackTimer = 0.35f;
                 }
             }
             else{
@@ -427,6 +428,8 @@ public class PlayerScript : MonoBehaviour
         hit.Play();
         CameraScript.shake(2);
         hitAnimation.Play();
+
+        groundAttackTimer = 0.5f;
         //rb.velocity = playerSprite.up * 40;
         //attacking = -0.2f;
     }

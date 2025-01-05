@@ -7,22 +7,23 @@ public class projectileScript : MonoBehaviour
     private Rigidbody2D rb;
     public float shotSpeed;
     public bool aimer;
-    public float shooterAngle;
     public GameObject hit;
     public GameObject deflect;
+    private float startCounter;
 
     // Start is called before the first frame update
     void Start()
     {
         Instantiate(hit, transform.position, Quaternion.identity);
         rb = gameObject.GetComponent<Rigidbody2D>();
-        if(aimer == false){
-            transform.eulerAngles = new Vector3(0, 0, shooterAngle);
-        }
-        else{
+        if(aimer == true){
             transform.up = new Vector2(transform.position.x - PlayerScript.playerPosition.x, transform.position.y - PlayerScript.playerPosition.y) * -1;
         }
         rb.velocity = transform.up * shotSpeed;
+    }
+
+    void Update(){
+        startCounter += Time.deltaTime;
     }
 
     private void OnTriggerEnter2D(Collider2D other) {
@@ -36,9 +37,11 @@ public class projectileScript : MonoBehaviour
             gameObject.layer = 0;
         }
     }
-
+    
     private void OnCollisionEnter2D(Collision2D other) {
-        Instantiate(hit, transform.position, Quaternion.identity);
-        Destroy(gameObject);
+        if(startCounter > 0.1f){
+            Instantiate(hit, transform.position, Quaternion.identity);
+            Destroy(gameObject);
+        }
     }
 }
