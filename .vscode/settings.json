@@ -56,5 +56,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "GDM.sln"
+    "dotnet.defaultSolution": "GDM---Arie.sln"
 }

@@ -415,13 +415,15 @@ public class PlayerScript : MonoBehaviour
         }
     }
 
+
     private void OnCollisionEnter2D(Collision2D other) {
         if(other.gameObject.tag == "Enemy Attack"){
             getHit(other.transform.position);
         }
     }
+    
+    public void getHit(Vector3 other){
 
-    void getHit(Vector3 other){
         //player getting hit
         Time.timeScale = 0.1f;
         playerSprite.up = new Vector3(transform.position.x - other.x, transform.position.y - other.y);
